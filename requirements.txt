@@ -1,0 +1,6 @@
+Flask~=2.0.3
+Flask-JWT-Extended
+Flask-RESTful
+Flask-SQLAlchemy
+marshmallow~=3.15.0
+Werkzeug~=2.0.3
