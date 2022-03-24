@@ -2,6 +2,7 @@ from db import db
 from flask import request, url_for
 from requests import Response
 from libs.email import Mailgun
+from confirmation import ConfirmationModel
 
 
 class UserModel(db.Model):
@@ -11,7 +12,16 @@ class UserModel(db.Model):
     username = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(30), nullable=False, unique=True)
-    activated = db.Column(db.Boolean, default=False)
+    # eliminamos porque ahora nuestro COnfirmationModel hara esta tarea activated = dbColumn(db.Boolean, default=False)
+    confirmation = db.relationship(
+        "ConfirmationModel", lazy="dynamic", cascade="all, delete-orphan"
+    )
+
+    @property
+    def most_recent_confirmation(self) -> "ConfirmationModel":
+        return self.confirmation.order_by(db.desc(ConfirmationModel.expire_at)).first()
+
+    # cascade="all, delete-orphan" --> cuando eliminas un usuario, eliminara todas sus confirmations
 
     @classmethod
     def find_by_username(cls, username: str) -> "UserModel":
@@ -26,12 +36,11 @@ class UserModel(db.Model):
         return cls.query.filter_by(id=_id).first()
 
     def send_confirmation_email(self) -> Response:
-        link = request.url_root[:-1] + url_for("userconfirm", user_id=self.id)
+        link = request.url_root[:-1] + url_for("confirmation", confirmation_id=self.most_recent_confirmation.id)
         subject = "Resgistration confirmation"
         text = f"esto es un texto we: {link}"
         html = f'<html>please click the link to confirm your registration: <a href="{link}"> Click here </a><html>'
         return Mailgun.send_email([self.email], subject, text, html)
-
 
     def save_to_db(self) -> None:
         db.session.add(self)
