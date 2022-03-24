@@ -4,3 +4,4 @@ data.db
 Pipfile
 Pipfile.lock
 __init__.py
+.env
