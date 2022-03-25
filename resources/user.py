@@ -1,6 +1,6 @@
 import traceback
 
-from flask_restful import Resource, reqparse
+from flask_restful import Resource
 from werkzeug.security import safe_str_cmp
 from flask_jwt_extended import (
     create_access_token,
@@ -12,8 +12,9 @@ from flask_jwt_extended import (
 from models.user import UserModel
 from blocklist import BLOCKLIST
 from schemas.user import UserSchema
-from flask import request, make_response, render_template
+from flask import request
 from libs.email import MailgunException
+from models.confirmation import ConfirmationModel
 
 BLANK_ERROR = "'{}' cannot be blank."
 USER_ALREADY_EXISTS = "A user with that username already exists."
@@ -42,6 +43,8 @@ class UserRegister(Resource):
             return {"message": EMAIL_ALREADY_EXISTS}, 400
         try:
             user.save_to_db()
+            confirmation = ConfirmationModel(user.id)
+            confirmation.save_to_db()
             user.send_confirmation_email()
             return {"message": SUCCESS_REGISTER_MESSAGE}, 201
         except MailgunException as error:
@@ -49,6 +52,7 @@ class UserRegister(Resource):
             return {"message": str(error)}, 500
         except:
             traceback.print_exc()
+            user.delete_from_db()
             return {"message": FAILED_TO_CREATE}, 500
 
 
@@ -75,13 +79,15 @@ class UserLogin(Resource):
     def post(cls):
         user_json = request.get_json()
         user_data = user_schema.load(user_json, partial=(
-        "email",))  # partial = (tuple) --> estamos diciendo que ignore el email para crear el objeto
+            "email",))  # partial = (tuple) --> estamos diciendo que ignore el email para crear el objeto
 
         user = UserModel.find_by_username(user_data.username)
 
         # this is what the `authenticate()` function did in security.py
         if user and safe_str_cmp(user.password, user_data.password):
-            if user.activated:
+            confirmation = user.most_recent_confirmation
+
+            if confirmation and confirmation.confirmed:
                 # identity= is what the identity() function did in security.py—now stored in the JWT
                 access_token = create_access_token(identity=user.id, fresh=True)
                 refresh_token = create_refresh_token(user.id)
@@ -107,21 +113,3 @@ class TokenRefresh(Resource):
         current_user = get_jwt_identity()
         new_token = create_access_token(identity=current_user, fresh=False)
         return {"access_token": new_token}, 200
-
-
-class UserConfirm(Resource):
-    @classmethod
-    def get(cls, user_id: int):
-        user = UserModel.find_by_id(user_id)
-        if not user:
-            return {"message": USER_NOT_FOUND}
-        user.activated = True
-        user.save_to_db()
-        headers = {"Content-Type": "text/html"}
-        # los headers son informaicon que le pasamos al nacevador, en este caso content-type hace referencia a
-        # que tipo de contenido es el que le estamos enviando, en este caos es text/html porque estamos regresando
-        # un tipo de contendio de texto html
-        # si no hacemos esto, el navedaros pensara que le estamos enviando un JSON y no un HTML
-        return make_response(render_template("confirmation_page.html", email=user.username), 200, headers)
-        # tambien podemos refirigir a un sitio web usando:
-        # return redirect("url", code=302)
