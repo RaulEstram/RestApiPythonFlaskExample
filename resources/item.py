@@ -1,10 +1,10 @@
 from flask_restful import Resource
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from marshmallow import ValidationError
 
 from models.item import ItemModel
 from schemas.item import ItemSchama
+from libs.strings import gettext
 
 item_schema = ItemSchama()
 item_list_schema = ItemSchama(many=True)
@@ -17,19 +17,19 @@ class Item(Resource):
         item = ItemModel.find_by_name(name)
         if item:
             return item_schema.dump(item)
-        return {'message': 'Item not found'}, 404
+        return {'message': gettext("item_not_found")}, 404
 
     @jwt_required(fresh=True)
     def post(self, name):
         if ItemModel.find_by_name(name):
-            return {'message': "An item with name '{}' already exists.".format(name)}
+            return {'message': gettext("item_name_exists").format(name)}
         item_json = request.get_json()
         item_json["name"] = name
         item = ItemModel(**item_json)
         try:
             item.save_to_db()
         except:
-            return {"message": "An error occurred inserting the item."}
+            return {"message": gettext("item_error_inserting")}
         return item_schema.dump(item), 201
 
     @jwt_required()
@@ -49,7 +49,8 @@ class Item(Resource):
         item = ItemModel.find_by_name(name)
         if item:
             item.delete_from_db()
-        return {"message": "Item deleted"}
+            return {"message": gettext("item_deleted")}, 200
+        return {"message": gettext("item_not_found")}, 404
 
 
 class ItemList(Resource):

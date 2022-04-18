@@ -2,7 +2,7 @@ from db import db
 from flask import request, url_for
 from requests import Response
 from libs.email import Mailgun
-from confirmation import ConfirmationModel
+from models.confirmation import ConfirmationModel
 
 
 class UserModel(db.Model):
@@ -12,9 +12,8 @@ class UserModel(db.Model):
     username = db.Column(db.String(80), nullable=False, unique=True)
     password = db.Column(db.String(80), nullable=False)
     email = db.Column(db.String(30), nullable=False, unique=True)
-    # eliminamos porque ahora nuestro COnfirmationModel hara esta tarea activated = dbColumn(db.Boolean, default=False)
     confirmation = db.relationship(
-        "ConfirmationModel", lazy="dynamic", cascade="all, delete-orphan"
+        "ConfirmationModel", lazy="dynamic", cascade="all, delete-orphan", back_populates="user"
     )
 
     @property

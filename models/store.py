@@ -7,7 +7,7 @@ class StoreModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False, unique=True)
 
-    items = db.relationship("ItemModel", lazy="dynamic")
+    items = db.relationship("ItemModel", lazy="dynamic", back_populates="store")
 
     # items contiene una lista con todos los registros de items
     # para evitar el crear una variable de instancio con todos los registros de la tabla items para cada store
