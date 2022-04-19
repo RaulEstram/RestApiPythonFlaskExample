@@ -5,7 +5,7 @@ SQLALCHEMY_DATABASE_URI = "sqlite:///data.db"
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 PROPAGATE_EXCEPTIONS = True
 
-JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"]
+JWT_SECRET_KEY = os.environ["JWT_SECRET_KEY"] # solamente es necesario para las cookies
 JWT_BLOCKLIST_ENABLED = True
 JWT_BLOCKLIST_TOKEN_CHECKS = [
     "access",

@@ -2,7 +2,6 @@ import traceback
 
 from flask import request
 from flask_restful import Resource
-from werkzeug.security import safe_str_cmp
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -86,7 +85,7 @@ class UserLogin(Resource):
         user = UserModel.find_by_username(user_data.username)
 
         # this is what the `authenticate()` function did in security.py
-        if user and safe_str_cmp(user.password, user_data.password):
+        if user and user.password == user_data.password:
             confirmation = user.most_recent_confirmation
 
             if confirmation and confirmation.confirmed:
@@ -103,6 +102,8 @@ class UserLogout(Resource):
     @jwt_required()
     def post(cls):
         jti = get_jwt()["jti"]  # jti is "JWT ID", a unique identifier for a JWT.
+        print(jti)
+        print(get_jwt())
         user_id = get_jwt_identity()
         BLOCKLIST.add(jti)
         return {"message": gettext("user_logged_out").format(user_id)}, 200
